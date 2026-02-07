@@ -26,8 +26,8 @@ void init_wifi(void) {
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_start());
 
-  ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_channel(NORMAL_CHANNEL, WIFI_SECOND_CHAN_NONE));
+  ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
   uint8_t mac[6];
   esp_wifi_get_mac(WIFI_IF_STA, mac);
   ESP_LOGI(TAG, "MAC %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
@@ -42,16 +42,16 @@ void on_data_sent(const esp_now_send_info_t* info,
 
 void on_data_recv(const esp_now_recv_info_t* info, const uint8_t* data,
                   int len) {
-  ESP_LOGI(TAG, "Message reçu");
-  /*ESP_LOGI(TAG, "Message reçu de %02X:%02X:%02X:%02X:%02X:%02X, len=%d",
+  ESP_LOGI(TAG, "Message reçu %d", data[0]);
+  ESP_LOGI(TAG, "Message reçu de %02X:%02X:%02X:%02X:%02X:%02X, len=%d",
            info->src_addr[0], info->src_addr[1], info->src_addr[2],
            info->src_addr[3], info->src_addr[4], info->src_addr[5], len);
   if (data[0] != MSG_DATA) return;
 
   client_msg_t msg;
   memcpy(&msg, data, sizeof(msg));
-  ESP_LOGI(TAG, "UID %d | %.2f kg | %.2f C | %.2f V\n", msg.uid, msg.weight,
-           msg.temperature, msg.battery);*/
+  ESP_LOGI(TAG, "UID %d | %.2f kg | %.2f C | %.2f V\n", msg.uid,
+           msg.weight_x10 / 10.0, msg.temp_x10 / 10.0, msg.battery_mv / 1000.0);
   /*
     server_msg_t reply = {.uid = msg.uid, .type = 2, .sleep_us = remain};
 
@@ -70,7 +70,15 @@ void init_espnow(void) {
       .channel = NORMAL_CHANNEL,
       .ifidx = WIFI_IF_STA,
       .encrypt = false};
-  ESP_ERROR_CHECK(esp_now_add_peer(&bcast));
+  esp_err_t err = esp_now_add_peer(&bcast);
+  if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Peer broadcast enregistré");
+  } else if (err == ESP_ERR_ESPNOW_EXIST) {
+    ESP_LOGI(TAG, "Peer broadcast existait déjà");
+  } else {
+    ESP_LOGE(TAG, "Erreur enregistrement peer broadcast: %s",
+             esp_err_to_name(err));
+  }
 }
 
 void send_adv() {

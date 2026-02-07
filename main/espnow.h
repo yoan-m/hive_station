@@ -13,12 +13,12 @@
 #define NORMAL_CHANNEL 1
 #define CYCLE_US (30LL * 60 * 1000000LL)
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint8_t type;
   uint8_t uid;
-  float weight;
-  float temperature;
-  float battery;
+  int16_t weight_x10;
+  int16_t temp_x10;
+  uint16_t battery_mv;
 } client_msg_t;
 
 typedef struct {

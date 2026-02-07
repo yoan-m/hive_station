@@ -13,11 +13,12 @@
 
 static const char* TAG = "ESPNOW_SERVER";
 void app_main(void) {
-  nvs_flash_init();
+  ESP_LOGI(TAG, "🚀 Démarrage serveur ESP-NOW...");
   init_wifi();
+  vTaskDelay(pdMS_TO_TICKS(100));
   init_espnow();
-
-  ESP_LOGI(TAG, "Serveur démarré\n");
+  vTaskDelay(pdMS_TO_TICKS(500));
+  ESP_LOGI(TAG, "✅ Serveur prêt à recevoir les messages !");
 
   send_adv();
   while (true) {
