@@ -1,0 +1,25 @@
+#ifndef GPIOSCONFIG_H
+#define GPIOSCONFIG_H
+
+#define LED_BUILTIN GPIO_NUM_2
+
+#define I2C_MASTER_SCL_IO GPIO_NUM_22
+#define I2C_MASTER_SDA_IO GPIO_NUM_21
+
+#define ADC_CHANNEL ADC_CHANNEL_3  // GPI39
+#define POWER_ADC_PIN GPIO_NUM_18
+
+#define LORA_PIN GPIO_NUM_34
+#define SIGFOX_PIN GPIO_NUM_35
+
+#define DIP_SWITCH_PINS_COUNT 6
+static const int DIP_SWITCH_PINS[DIP_SWITCH_PINS_COUNT] = {23, 25, 26,
+                                                           27, 32, 33};
+
+#define SETUP_PIN 19
+
+#define LORA_TX_PIN 16
+#define LORA_RX_PIN 17
+#define SIGFOX_TX_PIN 16
+#define SIGFOX_RX_PIN 17
+#endif

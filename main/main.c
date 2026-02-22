@@ -9,24 +9,59 @@
 #include "espnow.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "loramanager.h"
 #include "nvs_flash.h"
+#include "sensors.h"
+#include "sigfoxmanager.h"
 
 static const char* TAG = "ESPNOW_SERVER";
+TimerHandle_t sleep_timer;
+TaskHandle_t main_task_handle = NULL;
+void timer_callback(TimerHandle_t xTimer) {
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  vTaskNotifyGiveFromISR(main_task_handle, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
 void app_main(void) {
+  main_task_handle = xTaskGetCurrentTaskHandle();
+  esp_log_level_set("*", ESP_LOG_WARN);
+  esp_log_level_set(TAG, ESP_LOG_INFO);
   ESP_LOGI(TAG, "🚀 Démarrage serveur ESP-NOW...");
+  init_sensors();
+  if (is_sigfox_enabled()) {
+    initSigfox();
+  } else if (is_lora_enabled()) {
+    initLora();
+  }
+  vTaskDelay(pdMS_TO_TICKS(100));
   init_wifi();
   vTaskDelay(pdMS_TO_TICKS(100));
   init_espnow();
   vTaskDelay(pdMS_TO_TICKS(500));
   ESP_LOGI(TAG, "✅ Serveur prêt à recevoir les messages !");
 
-  send_adv();
-  while (true) {
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-  /*vTaskDelay(pdMS_TO_TICKS(NB_SLOTS * SLOT_MS + 200));
+  uint8_t dip_switch_value = read_dip_switch();
+  float temperature = read_temperature();
+  float humidity = read_humidity();
+  float voltage = read_voltage();
 
-  ESP_LOGI(TAG, "Mise en veille\n");
+  send_adv(dip_switch_value, temperature, humidity, voltage);
+
+  TimerHandle_t sleep_timer =
+      xTimerCreate("sleep_timer", pdMS_TO_TICKS(NB_SLOTS * SLOT_MS + 2000),
+                   pdFALSE, NULL, timer_callback);
+
+  xTimerStart(sleep_timer, 0);
+
+  // Attente notification
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+  ESP_LOGI(TAG, "Mise en veille");
+
+  esp_now_deinit();
+  esp_wifi_stop();
+
   esp_sleep_enable_timer_wakeup(CYCLE_US);
-  esp_deep_sleep_start();*/
+  esp_deep_sleep_start();
 }

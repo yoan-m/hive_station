@@ -6,7 +6,7 @@
 
 #include "esp_now.h"
 
-#define NB_SLOTS 16
+#define NB_SLOTS 2  // 16
 #define MSG_SYNC 1
 #define MSG_DATA 2
 #define SLOT_MS 2000
@@ -19,6 +19,9 @@ typedef struct __attribute__((packed)) {
   int16_t weight_x10;
   int16_t temp_x10;
   uint16_t battery_mv;
+  int16_t station_temp_x10;
+  uint16_t station_humidity_x100;
+  uint16_t station_battery_mv;
 } client_msg_t;
 
 typedef struct {
@@ -32,5 +35,7 @@ void on_data_recv(const esp_now_recv_info_t* info, const uint8_t* data,
                   int len);
 void on_data_sent(const esp_now_send_info_t* info,
                   esp_now_send_status_t status);
-void send_adv();
+void send_adv(uint8_t dip_switch_value, float temperature, float humidity,
+              float voltage);
+void sendData(const client_msg_t* data);
 #endif  // ESPNOW_H
