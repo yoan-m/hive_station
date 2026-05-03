@@ -9,7 +9,7 @@
 #define UART_NUM UART_NUM_1
 #define UART_BUF_SIZE 1024
 
-#define WAIT_MS 200
+#define WAIT_MS 500
 void initLora();
 
 void sendLoraATCommand(const char* cmd, uint32_t wait_ms);

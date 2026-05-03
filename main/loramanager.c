@@ -6,6 +6,7 @@
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "espnow.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -45,6 +46,7 @@ void initLora() {
 
 // === Préparer le payload LoRa (max 24 caractères ASCII) ===
 void preparePayloadLora(const char* input, char* output, size_t size) {
+  ESP_LOGI(TAG, "Preparation du payload : %s", input);
   size_t len = strlen(input);
   if (len > 24) len = 24;
   strncpy(output, input, len);
@@ -53,26 +55,49 @@ void preparePayloadLora(const char* input, char* output, size_t size) {
 
 // === Envoyer une commande AT et lire la réponse ===
 void sendLoraATCommand(const char* cmd, uint32_t wait_ms) {
-  ESP_LOGI(TAG, "📨 Envoi de la commande : %s", cmd);
+  ESP_LOGI(TAG, "📨 Envoi : %s", cmd);
 
-  vTaskDelay(pdMS_TO_TICKS(wait_ms));
+  uart_flush(UART_NUM);
+
   uart_write_bytes(UART_NUM, cmd, strlen(cmd));
   uart_write_bytes(UART_NUM, "\r\n", 2);
-  vTaskDelay(pdMS_TO_TICKS(wait_ms));
-
-  ESP_LOGI(TAG, "📤 Commande envoyée");
 
   uint8_t data[UART_BUF_SIZE];
-  int len =
-      uart_read_bytes(UART_NUM, data, UART_BUF_SIZE - 1, pdMS_TO_TICKS(100));
-  if (len > 0) {
-    data[len] = '\0';
-    ESP_LOGI(TAG, "%s", data);
+  int total_len = 0;
+
+  int64_t start = esp_timer_get_time();
+
+  while ((esp_timer_get_time() - start) < (wait_ms * 1000)) {
+    int len = uart_read_bytes(UART_NUM, data + total_len,
+                              UART_BUF_SIZE - 1 - total_len, pdMS_TO_TICKS(50));
+
+    if (len > 0) {
+      total_len += len;
+      data[total_len] = '\0';
+
+      // DEBUG
+      ESP_LOGI(TAG, "📥 Reçu: %s", data);
+
+      // ✔️ Vérification des réponses
+      if (strstr((char*)data, "+OK")) {
+        return;
+      }
+      if (strstr((char*)data, "+ERR")) {
+        return;
+      }
+      if (strstr((char*)data, "+SENT")) {
+        return;
+      }
+    }
   }
+
+  ESP_LOGW(TAG, "⏱ Timeout sans réponse");
+  return;
 }
 
 // === Envoyer les données via LoRa ===
 void sendDataViaLora(const char* data) {
+  ESP_LOGI(TAG, "📨 Envoi via LoRa");
   char payload[32];
   preparePayloadLora(data, payload, sizeof(payload));
 

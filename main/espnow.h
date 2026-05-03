@@ -6,12 +6,12 @@
 
 #include "esp_now.h"
 
-#define NB_SLOTS 2  // 16
 #define MSG_SYNC 1
 #define MSG_DATA 2
 #define SLOT_MS 2000
 #define NORMAL_CHANNEL 1
-#define CYCLE_US (30LL * 60 * 1000000LL)
+#define CYCLE_US \
+  (30LL * 60 * 1000000LL + 30000000LL)  // 30 minutes + 30 secondes
 
 typedef struct __attribute__((packed)) {
   uint8_t type;

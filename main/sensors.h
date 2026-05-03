@@ -21,7 +21,8 @@ bool is_sigfox_enabled(void);
 bool is_lora_enabled(void);
 bool is_setup_enabled(void);
 
-uint8_t read_dip_switch(void);
+uint8_t read_nodes_dip_switch(void);
+uint8_t read_address_dip_switch(void);
 
 void disable_inputs(void);
 

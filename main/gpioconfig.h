@@ -9,17 +9,19 @@
 #define ADC_CHANNEL ADC_CHANNEL_3  // GPI39
 #define POWER_ADC_PIN GPIO_NUM_18
 
-#define LORA_PIN GPIO_NUM_34
-#define SIGFOX_PIN GPIO_NUM_35
+#define LORA_PIN GPIO_NUM_25
+#define SIGFOX_PIN GPIO_NUM_36
 
-#define DIP_SWITCH_PINS_COUNT 6
-static const int DIP_SWITCH_PINS[DIP_SWITCH_PINS_COUNT] = {23, 25, 26,
-                                                           27, 32, 33};
+#define NODES_DIP_SWITCH_PINS_COUNT 2
+static const int NODES_DIP_SWITCH_PINS[NODES_DIP_SWITCH_PINS_COUNT] = {26, 27};
+#define ADDRESS_DIP_SWITCH_PINS_COUNT 2
+static const int ADDRESS_DIP_SWITCH_PINS[ADDRESS_DIP_SWITCH_PINS_COUNT] = {32,
+                                                                           33};
 
 #define SETUP_PIN 19
 
-#define LORA_TX_PIN 16
-#define LORA_RX_PIN 17
+#define LORA_TX_PIN 17
+#define LORA_RX_PIN 16
 #define SIGFOX_TX_PIN 16
 #define SIGFOX_RX_PIN 17
 #endif

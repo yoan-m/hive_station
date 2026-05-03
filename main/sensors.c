@@ -54,6 +54,7 @@ void init_i2c(void) {
       .scl_pullup_en = GPIO_PULLUP_ENABLE,
       .master.clk_speed = I2C_MASTER_FREQ_HZ,
   };
+
   i2c_bus = i2c_bus_create(I2C_MASTER_NUM, &conf);
 }
 
@@ -72,7 +73,8 @@ void init_lora_pin(void) {
 
   in_pullup.pin_bit_mask = 1ULL << LORA_PIN;
   gpio_config(&in_pullup);
-  ESP_LOGI(TAG, "Lora pin initialized");
+  int level = gpio_get_level(LORA_PIN);
+  ESP_LOGI(TAG, "Lora pin initialized GPIO %d = %d\n", LORA_PIN, level);
 }
 
 void init_sigfox_pin(void) {
@@ -84,7 +86,8 @@ void init_sigfox_pin(void) {
 
   in_pullup.pin_bit_mask = 1ULL << SIGFOX_PIN;
   gpio_config(&in_pullup);
-  ESP_LOGI(TAG, "Sigfox pin initialized");
+  int level = gpio_get_level(SIGFOX_PIN);
+  ESP_LOGI(TAG, "Sigfox pin initialized GPIO %d = %d\n", SIGFOX_PIN, level);
 }
 
 void init_led_pin(void) {
@@ -155,8 +158,11 @@ void init_dip_switches(void) {
   };
 
   uint64_t dip_mask = 0;
-  for (int i = 0; i < DIP_SWITCH_PINS_COUNT; i++) {
-    dip_mask |= 1ULL << DIP_SWITCH_PINS[i];
+  for (int i = 0; i < NODES_DIP_SWITCH_PINS_COUNT; i++) {
+    dip_mask |= 1ULL << NODES_DIP_SWITCH_PINS[i];
+  }
+  for (int i = 0; i < ADDRESS_DIP_SWITCH_PINS_COUNT; i++) {
+    dip_mask |= 1ULL << ADDRESS_DIP_SWITCH_PINS[i];
   }
   in_pullup.pin_bit_mask = dip_mask;
   gpio_config(&in_pullup);
@@ -175,7 +181,6 @@ void init_sensors(void) {
   init_sigfox_pin();
 
   init_dip_switches();
-  read_dip_switch();
 
   init_i2c();
   init_bme280();
@@ -237,7 +242,8 @@ bool is_setup_enabled(void) {
 }
 
 bool is_sigfox_enabled(void) {
-  if (gpio_get_level(SIGFOX_PIN) == 1) {
+  return false;
+  if (gpio_get_level(SIGFOX_PIN) == 0) {
     ESP_LOGI(TAG, "Sigfox enabled");
     return true;
   }
@@ -245,7 +251,8 @@ bool is_sigfox_enabled(void) {
 }
 
 bool is_lora_enabled(void) {
-  if (gpio_get_level(LORA_PIN) == 1) {
+  return true;
+  if (gpio_get_level(LORA_PIN) == 0) {
     ESP_LOGI(TAG, "Lora enabled");
     return true;
   }
@@ -264,7 +271,7 @@ float read_voltage(void) {
 
   int voltage = raw * (3.3 / 4095.0) * 1000;  // Convertir en tension ADC
   int batteryVoltage =
-      voltage / (100.0 / (100.0 + 100.0));  // Ajustement avec le pont diviseur
+      voltage / (100.0 / (680.0 + 100.0));  // Ajustement avec le pont diviseur
   ESP_LOGI(TAG, "RAW=%d  Voltage=%d mV RealVoltage=%d mV batteryVoltage=%d mV",
            raw, mv, voltage, batteryVoltage);
 
@@ -272,27 +279,47 @@ float read_voltage(void) {
   return mv;
 }
 
-uint8_t read_dip_switch(void) {
+uint8_t read_nodes_dip_switch(void) {
   uint8_t id = 0;
-  for (int i = 0; i < DIP_SWITCH_PINS_COUNT; i++) {
-    if (gpio_get_level(DIP_SWITCH_PINS[i]) == 0) {
+  for (int i = 0; i < NODES_DIP_SWITCH_PINS_COUNT; i++) {
+    if (gpio_get_level(NODES_DIP_SWITCH_PINS[i]) == 0) {
+      id |= (1 << i);
+    }
+  }
+  UID = (id + 1) * 8;
+
+  ESP_LOGI(TAG, "Valeur du DIP switch NODES : %d", UID);
+  return UID;
+}
+
+uint8_t read_address_dip_switch(void) {
+  uint8_t id = 0;
+  for (int i = 0; i < ADDRESS_DIP_SWITCH_PINS_COUNT; i++) {
+    if (gpio_get_level(ADDRESS_DIP_SWITCH_PINS[i]) == 0) {
       id |= (1 << i);
     }
   }
   UID = id + 1;
 
-  ESP_LOGI(TAG, "Valeur du DIP switch : %d", UID);
+  ESP_LOGI(TAG, "Valeur du DIP switch ADDRESS : %d", UID);
   return UID;
 }
 
 void disable_input(gpio_num_t gpio) { gpio_reset_pin(gpio); }
 
 void disable_inputs(void) {
-  for (int i = 0; i < DIP_SWITCH_PINS_COUNT; i++) {
-    disable_input(DIP_SWITCH_PINS[i]);
-    gpio_reset_pin(DIP_SWITCH_PINS[i]);
-    gpio_set_direction(DIP_SWITCH_PINS[i], GPIO_MODE_INPUT);
-    gpio_set_pull_mode(DIP_SWITCH_PINS[i], GPIO_FLOATING);
+  for (int i = 0; i < NODES_DIP_SWITCH_PINS_COUNT; i++) {
+    disable_input(NODES_DIP_SWITCH_PINS[i]);
+    gpio_reset_pin(NODES_DIP_SWITCH_PINS[i]);
+    gpio_set_direction(NODES_DIP_SWITCH_PINS[i], GPIO_MODE_INPUT);
+    gpio_set_pull_mode(NODES_DIP_SWITCH_PINS[i], GPIO_FLOATING);
+  }
+
+  for (int i = 0; i < ADDRESS_DIP_SWITCH_PINS_COUNT; i++) {
+    disable_input(ADDRESS_DIP_SWITCH_PINS[i]);
+    gpio_reset_pin(ADDRESS_DIP_SWITCH_PINS[i]);
+    gpio_set_direction(ADDRESS_DIP_SWITCH_PINS[i], GPIO_MODE_INPUT);
+    gpio_set_pull_mode(ADDRESS_DIP_SWITCH_PINS[i], GPIO_FLOATING);
   }
 
   // gpio_set_level(POWER_SENSORS_PIN, 0);  // coupe capteurs
